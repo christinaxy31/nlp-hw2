@@ -140,7 +140,7 @@ class MultiHeadedAttention(nn.Module):
 
     
     
- class PositionwiseFeedForward(nn.Module):
+class PositionwiseFeedForward(nn.Module):
     "Implements FFN equation."
 
     def __init__(self, d_model, d_ff, dropout=0.1):
