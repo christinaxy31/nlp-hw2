@@ -18,8 +18,8 @@ class LayerNorm(nn.Module):
         mean = x.mean(-1, keepdim=True)
         std = x.std(-1, keepdim=True)
         return self.a_2 * (x - mean) / (std + self.eps) + self.b_2
-    
-    
+
+
 class SublayerConnection(nn.Module):
     """
     A residual connection (https://arxiv.org/abs/1512.03385) followed by a layer norm.
@@ -34,8 +34,8 @@ class SublayerConnection(nn.Module):
     def forward(self, x, sublayer):
         "Apply residual connection to any sublayer with the same size."
         return x + self.dropout(sublayer(self.norm(x)))
-    
-    
+
+
 class EncoderLayer(nn.Module):
     "Encoder is made up of self-attention and feed forward (defined below)"
 
@@ -50,8 +50,8 @@ class EncoderLayer(nn.Module):
         "Follow Figure 1 (left) for connections."
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, mask))
         return self.sublayer[1](x, self.feed_forward)
-    
-    
+
+
 class DecoderLayer(nn.Module):
     "Decoder is made of self-attn, src-attn, and feed forward (defined below)"
 
@@ -68,58 +68,57 @@ class DecoderLayer(nn.Module):
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, tgt_mask))
         x = self.sublayer[1](x, lambda x: self.src_attn(x, m, m, src_mask))
         return self.sublayer[2](x, self.feed_forward)
-    
-    
 
 
 import torch
 import torch.nn as nn
 import math
 
-
-
 import torch
 import torch.nn as nn
 import math
+
 
 # Attention function
 def attention(query, key, value, mask=None, dropout=None):
     # query: (batch_size, h, seq_len_q, d_k)
     # key: (batch_size, h, seq_len_k, d_k)
     # value: (batch_size, h, seq_len_k, d_v)
-    
+
     d_k = query.size(-1)
-    
+
     # Compute scores
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)  # (batch_size, h, seq_len_q, seq_len_k)
     print(f"Scores shape: {scores.shape}")  # Debugging: Print scores shape
-    
+
     # Adjust mask shape if necessary
     if mask is not None:
         print(f"Mask shape before unsqueeze: {mask.shape}")  # Debugging: Print mask shape before unsqueeze
         mask = mask.unsqueeze(1).unsqueeze(2)  # (batch_size, 1, 1, seq_len_k)
         print(f"Mask shape after unsqueeze: {mask.shape}")  # Debugging: Print mask shape after unsqueeze
-        
+
         # Ensure mask can broadcast with scores
-        assert mask.size(-1) == scores.size(-1), f"Mask shape {mask.shape} is not compatible with scores shape {scores.shape}"
+        assert mask.size(-1) == scores.size(
+            -1), f"Mask shape {mask.shape} is not compatible with scores shape {scores.shape}"
         scores = scores.masked_fill(mask == 0, float('-inf'))
-    
+
     # Softmax over the last dimension
     attn_weights = torch.softmax(scores, dim=-1)  # (batch_size, h, seq_len_q, seq_len_k)
-    
+
     if dropout is not None:
         attn_weights = dropout(attn_weights)
-    
+
     # Multiply attention weights with value
     output = torch.matmul(attn_weights, value)  # (batch_size, h, seq_len_q, d_v)
     return output, attn_weights
+
 
 # MultiHeadedAttention class
 class MultiHeadedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):
         super(MultiHeadedAttention, self).__init__()
-        self.h = h  
-        self.d_k = d_model // h  
+        self.h = h
+        self.d_k = d_model // h
         self.d_model = d_model
 
         self.linears = nn.ModuleList([nn.Linear(d_model, d_model) for _ in range(4)])
@@ -129,19 +128,17 @@ class MultiHeadedAttention(nn.Module):
         batch_size = query.size(0)
 
         # Check the shapes of query, key, and value
-        print(f"Query shape: {query.shape}, Key shape: {key.shape}, Value shape: {value.shape}")  # Debugging: Print input shapes
-        
+        print(
+            f"Query shape: {query.shape}, Key shape: {key.shape}, Value shape: {value.shape}")  # Debugging: Print input shapes
+
         # Ensure d_model is divisible by h
         assert self.d_model % self.h == 0, "d_model must be divisible by the number of heads (h)."
-        
+
         # Linear projection and reshape to (batch_size, h, seq_len, d_k)
         query, key, value = [linear(x).view(batch_size, -1, self.h, self.d_k).transpose(1
 
 
-    
-    
 class PositionwiseFeedForward(nn.Module):
-    "Implements FFN equation."
 
     def __init__(self, d_model, d_ff, dropout=0.1):
         super(PositionwiseFeedForward, self).__init__()
@@ -149,10 +146,11 @@ class PositionwiseFeedForward(nn.Module):
         self.w_2 = nn.Linear(d_ff, d_model)
         self.dropout = nn.Dropout(dropout)
 
+
     def forward(self, x):
-        return self.w_2(self.dropout(self.w_1(x).relu()))
-    
-    
+    return self.w_2(self.dropout(self.w_1(x).relu()))
+
+
 class Embeddings(nn.Module):
     def __init__(self, d_model, vocab):
         super(Embeddings, self).__init__()
@@ -161,11 +159,10 @@ class Embeddings(nn.Module):
 
     def forward(self, x):
         return self.lut(x) * math.sqrt(self.d_model)
-    
-    
-class Generator(nn.Module):
-    "Define standard linear + softmax generation step."
 
+
+class Generator(nn.Module):
+    
     def __init__(self, d_model, vocab):
         super(Generator, self).__init__()
         self.proj = nn.Linear(d_model, vocab)
@@ -173,10 +170,9 @@ class Generator(nn.Module):
     def forward(self, x):
         return log_softmax(self.proj(x), dim=-1)
 
-    
 
 class LabelSmoothing(nn.Module):
-    "Implement label smoothing."
+   
 
     def __init__(self, size, padding_idx, smoothing=0.0):
         super(LabelSmoothing, self).__init__()
@@ -199,4 +195,4 @@ class LabelSmoothing(nn.Module):
         self.true_dist = true_dist
         return self.criterion(x, true_dist.clone().detach())    
 
-    
+
