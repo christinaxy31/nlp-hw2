@@ -70,43 +70,61 @@ class DecoderLayer(nn.Module):
         return self.sublayer[2](x, self.feed_forward)
     
     
+
+
+import torch
+import torch.nn as nn
+import math
+
+# Attention function
 def attention(query, key, value, mask=None, dropout=None):
-    # Your code here
-    # query: (N,h,T_q,d)
-    # key:(N,h,T,d)
-    # value:(N,h,T,d/h)
-    d_k = query.size(-1)
-    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
+    # query: (N, h, T_q, d_k)
+    # key: (N, h, T_k, d_k)
+    # value: (N, h, T_k, d_v)
+    
+    d_k = query.size(-1)  
+    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)  # (N, h, T_q, T_k)
+    
     if mask is not None:
         scores = scores.masked_fill(mask == 0, float('-inf'))
-    attn_weights = torch.softmax(scores, dim = -1)
+    
+    attn_weights = torch.softmax(scores, dim=-1)  # (N, h, T_q, T_k)
+    
     if dropout is not None:
         attn_weights = dropout(attn_weights)
-    output = torch.matmul(attn_weights, value)
-    return output, attn_weights
     
+    
+    output = torch.matmul(attn_weights, value)  # (N, h, T_q, d_v)
+    return output, attn_weights
 
+# MultiHeadedAttention class
 class MultiHeadedAttention(nn.Module):
-    # linears layers are used for create the query, key, value vectors from the input embeddings.
-    # The different linear layers(W_k, W_q, W_v) can enable model to learn different aspects of the input sequence.
     def __init__(self, h, d_model, dropout=0.1):
-        self.h = h
-        self.d_k = d_model // h
+        super(MultiHeadedAttention, self).__init__()
+        self.h = h  
+        self.d_k = d_model // h  
         self.d_model = d_model
 
-        self.linears = nn.Modulelist([nn.Linear(d_model, d_model) for _ in range(4)])
+        self.linears = nn.ModuleList([nn.Linear(d_model, d_model) for _ in range(4)])
         self.attention_dropout = nn.Dropout(dropout)
 
     def forward(self, query, key, value, mask=None):
         batch_size = query.size(0)
-        query, key, value = [linear(x).view(batch_size, -1, self.h, self.d_k).transpose(1,2) for linear, x in zip(self.linears, (query, key, value))]
+
+        assert self.d_model % self.h == 0, "d_model must be divisible by the number of heads (h)."
+
+    
+        # (batch_size, seq_len, d_model) -> (batch_size, h, seq_len, d_k)
+        query, key, value = [linear(x).view(batch_size, -1, self.h, self.d_k).transpose(1, 2) 
+                             for linear, x in zip(self.linears, (query, key, value))]
 
         attention_output, _ = attention(query, key, value, mask=mask, dropout=self.attention_dropout)
-        attention_output = attention_output.transpose(1,2).contiguous().view(batch_size, -1, self.h * self.d_k)
+
+        attention_output = attention_output.transpose(1, 2).contiguous().view(batch_size, -1, self.h * self.d_k)
         final_output = self.linears[-1](attention_output)
 
         return final_output
-    
+
     
     
 class PositionwiseFeedForward(nn.Module):
