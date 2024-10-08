@@ -91,7 +91,7 @@ def attention(query, key, value, mask=None, dropout=None):
     #Such large negative number will have 0 exponentiation and hence their softmax will be 0 as well. 
     if mask is not None:
         scaled_score.masked_fill(mask==0,-1e9)
-    attention = F.softmax(scaled_score,dim=-1)
+    attention = torch.softmax(scaled_score,dim=-1)
     #Optional: Dropout
     if dropout is not None:
         attention = nn.Dropout(attention,dropout)
