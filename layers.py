@@ -118,10 +118,10 @@ def attention(query, key, value, mask=None, dropout=None):
         masked_positions = attn_weights.masked_select(mask == 0)
         print(f"Attention weights at masked positions: {masked_positions}")
 
-    sum_attn = torch.sum(mattn.attn, dim=-1)
+    
 
 
-    print(f"Attention sum at each position: {sum_attn}")
+   
 
     # Multiply attention weights with value
     output = torch.matmul(attn_weights, value)  # (batch_size, h, seq_len_q, d_v)
