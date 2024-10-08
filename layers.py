@@ -83,49 +83,24 @@ import torch
 import math
 
 def attention(query, key, value, mask=None, dropout=None):
-    # query: (batch_size, h, seq_len_q, d_k)
-    # key: (batch_size, h, seq_len_k, d_k)
-    # value: (batch_size, h, seq_len_k, d_v)
-
-    d_k = query.size(-1)
-
-    # Compute scores
-    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)  # (batch_size, h, seq_len_q, seq_len_k)
-    print(f"Scores shape: {scores.shape}")  # Debugging: Print scores shape
-
-    # Adjust mask shape if necessary
+    dk = key.shape[-1]
+    score = torch.matmul(query,key.transpose(-1,-2)) #BxLxD
+    scaled_score = score/math.sqrt(dk)
+    #Masking (optional) 
+    #Increase score to very large negative number for tokens that are masked.
+    #Such large negative number will have 0 exponentiation and hence their softmax will be 0 as well. 
     if mask is not None:
-        print(f"Mask shape before unsqueeze: {mask.shape}")  # Debugging: Print mask shape before unsqueeze
-        mask = mask.unsqueeze(1).unsqueeze(2)  # (batch_size, 1, 1, seq_len_k)
-        print(f"Mask shape after unsqueeze: {mask.shape}")  # Debugging: Print mask shape after unsqueeze
-        print(f"Mask values: {mask}")  # Debugging: Print mask values
-
-        # Ensure mask can broadcast with scores
-        assert mask.size(-1) == scores.size(
-            -1), f"Mask shape {mask.shape} is not compatible with scores shape {scores.shape}"
-        scores = scores.masked_fill(mask == 0, float('-inf'))
-
-    # Softmax over the last dimension
-    attn_weights = torch.softmax(scores, dim=-1)  # (batch_size, h, seq_len_q, seq_len_k)
-    print(f"Attention weights after softmax: {attn_weights}")  # Debugging: Print attention weights
-
+        scaled_score.masked_fill(mask==0,-1e9)
+    attention = F.softmax(scaled_score,dim=-1)
+    #Optional: Dropout
     if dropout is not None:
-        attn_weights = dropout(attn_weights)
-
-    # Check that attention weights are correctly masked
-    if mask is not None:
-        # Locations where mask is 0 should have near-zero attention weights
-        masked_positions = attn_weights.masked_select(mask == 0)
-        print(f"Attention weights at masked positions: {masked_positions}")
-
+        attention = nn.Dropout(attention,dropout)
+    #Z = enriched embedding 
+    output = torch.matmul(attention,value)
+    return output, attention
     
 
-
-   
-
-    # Multiply attention weights with value
-    output = torch.matmul(attn_weights, value)  # (batch_size, h, seq_len_q, d_v)
-    return output, attn_weights
+    
 
 
 
