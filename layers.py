@@ -113,7 +113,7 @@ def attention(query, key, value, mask=None, dropout=None):
     return output, attn_weights
 
 
-# MultiHeadedAttention class
+
 class MultiHeadedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):
         super(MultiHeadedAttention, self).__init__()
