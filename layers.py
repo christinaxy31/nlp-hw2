@@ -130,27 +130,56 @@ def attention(query, key, value, mask=None, dropout=None):
 
 
 class MultiHeadedAttention(nn.Module):
-    def __init__(self, h, d_model, dropout=0.1):
-        super(MultiHeadedAttention, self).__init__()
-        self.h = h
-        self.d_k = d_model // h
-        self.d_model = d_model
-
-        self.linears = nn.ModuleList([nn.Linear(d_model, d_model) for _ in range(4)])
-        self.attention_dropout = nn.Dropout(dropout)
-
-    def forward(self, query, key, value, mask=None):
-        batch_size = query.size(0)
-
-        # Check the shapes of query, key, and value
-        print(
-            f"Query shape: {query.shape}, Key shape: {key.shape}, Value shape: {value.shape}")  # Debugging: Print input shapes
-
-        # Ensure d_model is divisible by h
-        assert self.d_model % self.h == 0, "d_model must be divisible by the number of heads (h)."
-
-        # Linear projection and reshape to (batch_size, h, seq_len, d_k)
-        query, key, value = [linear(x).view(batch_size, -1, self.h, self.d_k).transpose(1, 2) for linear, x in zip(self.linears, (query, key, value))]
+    def __init__(self,nheads,dmodel,dropout=0.1):
+        super(MultiheadAttention,self).__init__()
+        assert dmodel % nheads ==0 
+        self.dk = dmodel//nheads
+        self.nheads =  nheads
+        
+        #From the theory Wq linear layer should be (dmodel x dk)
+        #But in implementation (we're using dmodel x dmodel) we will breakdown Wq into h heads later.
+        #It can we shown that calculating 'nheads' small q_i's of BxLxdk dimension individually by feeding
+        #key, query, value of dimension BxLxdk each is equivalent to 
+        #calculating 1 big Wq of BxLxdmodel dimension and feeding in large X (BxLxdmodel) to get a large Q (BxLxdmodel)
+        #then breaking Q into 'nheads' smaller q_i's of dimension BxLxdk each.
+        self.Wq = nn.Linear(dmodel,dmodel)
+        self.Wk = nn.Linear(dmodel,dmodel)
+        self.Wv = nn.Linear(dmodel,dmodel)
+        self.Wo = nn.Linear(dmodel,dmodel)
+        
+        self.dropout_value = dropout
+        self.dropout = nn.Dropout(p= dropout)
+        
+    def forward(self,query,key,value,mask=None):
+        if mask is not None:
+            # Same mask applied to all of the nheads
+            mask.unsqueeze(1)
+       
+        #Dim: q=k=v=x : (BxLxdmodel)
+        key,query,value = self.Wk(key), self.Wq(query), self.Wv(value)  #k,q,v = (BxLxdmodel)
+        
+        #Break k,q,v into nheads k_i's, q_i's and v_i's of dim (BxLxdk)
+        key = key.view(nbatches,-1,self.nheads,self.dk ) #(B,L,nheads,dk) (view -1: actual value for this dimension will be inferred so that the number of elements in the view matches the original number of elements.)
+        query = query.view(nbatches,-1,self.nheads,self.dk)  
+        value = value.view(nbatches,-1,self.nheads,self.dk)
+        
+        key = key.transpose(1,2) # (B,L,nheads,dk) --> (B,nheads,L,dk)
+        query = query.transpose(1,2)
+        value= value.transpose(1,2)
+        
+        #Calculate self attention and enriched embedding z_i's. 
+        #All z_i's are channeled together in 1 large z matrix below
+        z, self.attn = self_attention(query, key,value,mask,self.dropout_value)  #z : (B,nheads,L,dk), attn: (B,nheads,L,L)
+        
+        #Reshape z:(B,nheads,L,dk) -->z_concat (B,L,nheads*dk) to refelect the affect of concatenation as shown in figure
+        z_concat = z.transpose(1,2) # z:(B,nheads,L,dk) --> z_concat: (B,L,nheads,dk)
+        z_concat = z_concat.contiguous() #z_concat: (B,L,nheads,dk) --> z_concat: (1,B*L*nheads*dk)
+        z_concat = z_concat.view(nbatches, -1, self.nheads * self.dk) #z_concat: (1,B*L*nheads*dk) --> z_concat (B,L,nheads*dk)
+        
+        #Project z_concat with linear layer (Wo) to get final enriched embedding z_enriched as shown in figure
+        #z_concat (B,L,nheads*dk) --> z_enriched(B,L,dmodel)
+        z_enriched = self.Wo(z_concat)
+        return z_enriched
 
 
 class PositionwiseFeedForward(nn.Module):                                               
