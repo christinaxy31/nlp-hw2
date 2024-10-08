@@ -159,22 +159,22 @@ class MultiHeadedAttention(nn.Module):
         key,query,value = self.Wk(key), self.Wq(query), self.Wv(value)  #k,q,v = (BxLxdmodel)
         
         #Break k,q,v into nheads k_i's, q_i's and v_i's of dim (BxLxdk)
-        key = key.view(nbatches,-1,self.nheads,self.dk ) #(B,L,nheads,dk) (view -1: actual value for this dimension will be inferred so that the number of elements in the view matches the original number of elements.)
-        query = query.view(nbatches,-1,self.nheads,self.dk)  
-        value = value.view(nbatches,-1,self.nheads,self.dk)
+        key = key.view(-1,self.nheads,self.dk ) #(B,L,nheads,dk) (view -1: actual value for this dimension will be inferred so that the number of elements in the view matches the original number of elements.)
+        query = query.view(-1,self.nheads,self.dk)  
+        value = value.view(-1,self.nheads,self.dk)
         
-        key = key.transpose(1,2) # (B,L,nheads,dk) --> (B,nheads,L,dk)
-        query = query.transpose(1,2)
-        value= value.transpose(1,2)
+        key = key.transpose(-1,-2) # (B,L,nheads,dk) --> (B,nheads,L,dk)
+        query = query.transpose(-1,-2)
+        value= value.transpose(-1,-2)
         
         #Calculate self attention and enriched embedding z_i's. 
         #All z_i's are channeled together in 1 large z matrix below
         z, self.attn = self_attention(query, key,value,mask,self.dropout_value)  #z : (B,nheads,L,dk), attn: (B,nheads,L,L)
         
         #Reshape z:(B,nheads,L,dk) -->z_concat (B,L,nheads*dk) to refelect the affect of concatenation as shown in figure
-        z_concat = z.transpose(1,2) # z:(B,nheads,L,dk) --> z_concat: (B,L,nheads,dk)
+        z_concat = z.transpose(-1,-2) # z:(B,nheads,L,dk) --> z_concat: (B,L,nheads,dk)
         z_concat = z_concat.contiguous() #z_concat: (B,L,nheads,dk) --> z_concat: (1,B*L*nheads*dk)
-        z_concat = z_concat.view(nbatches, -1, self.nheads * self.dk) #z_concat: (1,B*L*nheads*dk) --> z_concat (B,L,nheads*dk)
+        z_concat = z_concat.view(-1, self.nheads * self.dk) #z_concat: (1,B*L*nheads*dk) --> z_concat (B,L,nheads*dk)
         
         #Project z_concat with linear layer (Wo) to get final enriched embedding z_enriched as shown in figure
         #z_concat (B,L,nheads*dk) --> z_enriched(B,L,dmodel)
