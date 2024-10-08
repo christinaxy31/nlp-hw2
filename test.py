@@ -42,6 +42,8 @@ def test_multiheaded_attention():
     out = mattn(query, key, value)
     
     assert out.shape == value.shape, print("Incorrect shape of output")
+    print("out_shape:", out.shape)
+    print("value_shape:", value.shape)
     print("=" * 10 + "   Multiheaded Attention Unit Test 1 Passed   " + "="*10)
     
     assert mattn.attn is not None, print("You should set self.attn values in the class")
