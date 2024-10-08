@@ -131,7 +131,7 @@ def attention(query, key, value, mask=None, dropout=None):
 
 class MultiHeadedAttention(nn.Module):
     def __init__(self,nheads,dmodel,dropout=0.1):
-        super(MultiheadAttention,self).__init__()
+        super(MultiHeadedAttention,self).__init__()
         assert dmodel % nheads ==0 
         self.dk = dmodel//nheads
         self.nheads =  nheads
