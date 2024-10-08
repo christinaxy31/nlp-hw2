@@ -24,7 +24,6 @@ def test_attention():
     mask = torch.ones(3, 10)
     mask[:, -1] = 0
     out, attn = attention(query, key, value, mask=mask)
-    print(f"attn: {attn[:, :, -1]}")
     assert torch.allclose(attn[:, :, -1], torch.zeros_like(attn[:, :, -1])), print("Attention weights are incorrectly masked")
     print("=" * 10 + "   Attention Unit Test 3 Passed   " + "="*10)
     
