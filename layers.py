@@ -169,7 +169,7 @@ class MultiHeadedAttention(nn.Module):
         
         #Calculate self attention and enriched embedding z_i's. 
         #All z_i's are channeled together in 1 large z matrix below
-        z, self.attn = self_attention(query, key,value,mask,self.dropout_value)  #z : (B,nheads,L,dk), attn: (B,nheads,L,L)
+        z, self.attn = attention(query, key,value,mask,self.dropout_value)  #z : (B,nheads,L,dk), attn: (B,nheads,L,L)
         
         #Reshape z:(B,nheads,L,dk) -->z_concat (B,L,nheads*dk) to refelect the affect of concatenation as shown in figure
         z_concat = z.transpose(-1,-2) # z:(B,nheads,L,dk) --> z_concat: (B,L,nheads,dk)
