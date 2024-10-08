@@ -136,12 +136,6 @@ class MultiHeadedAttention(nn.Module):
         self.dk = dmodel//nheads
         self.nheads =  nheads
         
-        #From the theory Wq linear layer should be (dmodel x dk)
-        #But in implementation (we're using dmodel x dmodel) we will breakdown Wq into h heads later.
-        #It can we shown that calculating 'nheads' small q_i's of BxLxdk dimension individually by feeding
-        #key, query, value of dimension BxLxdk each is equivalent to 
-        #calculating 1 big Wq of BxLxdmodel dimension and feeding in large X (BxLxdmodel) to get a large Q (BxLxdmodel)
-        #then breaking Q into 'nheads' smaller q_i's of dimension BxLxdk each.
         self.Wq = nn.Linear(dmodel,dmodel)
         self.Wk = nn.Linear(dmodel,dmodel)
         self.Wv = nn.Linear(dmodel,dmodel)
@@ -153,10 +147,10 @@ class MultiHeadedAttention(nn.Module):
     def forward(self, query, key, value, mask=None):
         if mask is not None:
             # Same mask applied to all of the nheads
-            mask = mask.unsqueeze(1)  # 需要在原始的 mask 维度上添加一个维度
+            mask = mask.unsqueeze(1) 
 
-        batch_size = query.size(0)  # 获取批次大小
-        seq_length = query.size(1)  # 获取序列长度
+        batch_size = query.size(0)  
+        seq_length = query.size(1)  
     
         # Project key, query, value using linear layers
         key, query, value = self.Wk(key), self.Wq(query), self.Wv(value)  # k, q, v = (B, L, dmodel)
