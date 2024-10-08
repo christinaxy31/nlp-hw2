@@ -83,6 +83,23 @@ import torch
 import math
 
 def attention(query, key, value, mask=None, dropout=None):
+    # query: [B, L_q, D]
+    # key: [B, L_k, D]
+    # value: [B, L_k, D]
+    # scaled_score：[B, L_q, L_k]
+    # mask：[B, 1, L_k]
+    # attention：[B, L_q, L_k]
+    # output：[B, L_q, D]
+    # for multihead:
+    # query：[B, L_q, num_heads, head_dim] -> [B, num_heads, L_q, head_dim]
+    # key：[B, L_k, num_heads, head_dim] -> [B, num_heads, L_k, head_dim]
+    # value：[B, L_k, num_heads, head_dim] -> [B, num_heads, L_k, head_dim]
+    # scaled_score：[B, num_heads, L_q, L_k]
+    # mask：[B, 1, 1, L_k]（broadcast in num_heads and L_q）
+    # attention：[B, num_heads, L_q, L_k]
+    # output：comcatenate and linear transformation to [B, L_q, D]
+    
+
     dk = key.shape[-1]
     score = torch.matmul(query,key.transpose(-1,-2)) #BxLxD
     scaled_score = score/math.sqrt(dk)
