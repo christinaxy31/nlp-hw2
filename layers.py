@@ -83,6 +83,8 @@ import torch
 import math
 
 def attention(query, key, value, mask=None, dropout=None):
+    # query and key have same D
+    # key and value have same L
     # query: [B, L_q, D]
     # key: [B, L_k, D]
     # value: [B, L_k, D]
