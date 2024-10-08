@@ -96,6 +96,8 @@ def attention(query, key, value, mask=None, dropout=None):
         print(f"Mask shape after unsqueeze: {mask.shape}")
         scaled_score.masked_fill(mask==0,-1e9)
     attention = torch.softmax(scaled_score,dim=-1)
+    if mask is not None:
+        attention = attention * mask 
     #Optional: Dropout
     if dropout is not None:
         attention = nn.Dropout(attention,dropout)
