@@ -79,7 +79,9 @@ import torch.nn as nn
 import math
 
 
-# Attention function
+import torch
+import math
+
 def attention(query, key, value, mask=None, dropout=None):
     # query: (batch_size, h, seq_len_q, d_k)
     # key: (batch_size, h, seq_len_k, d_k)
@@ -96,6 +98,7 @@ def attention(query, key, value, mask=None, dropout=None):
         print(f"Mask shape before unsqueeze: {mask.shape}")  # Debugging: Print mask shape before unsqueeze
         mask = mask.unsqueeze(1).unsqueeze(2)  # (batch_size, 1, 1, seq_len_k)
         print(f"Mask shape after unsqueeze: {mask.shape}")  # Debugging: Print mask shape after unsqueeze
+        print(f"Mask values: {mask}")  # Debugging: Print mask values
 
         # Ensure mask can broadcast with scores
         assert mask.size(-1) == scores.size(
@@ -104,9 +107,17 @@ def attention(query, key, value, mask=None, dropout=None):
 
     # Softmax over the last dimension
     attn_weights = torch.softmax(scores, dim=-1)  # (batch_size, h, seq_len_q, seq_len_k)
+    print(f"Attention weights after softmax: {attn_weights}")  # Debugging: Print attention weights
 
     if dropout is not None:
         attn_weights = dropout(attn_weights)
+
+    # Check that attention weights are correctly masked
+    if mask is not None:
+        # Locations where mask is 0 should have near-zero attention weights
+        masked_positions = attn_weights.masked_select(mask == 0)
+        print(f"Attention weights at masked positions: {masked_positions}")
+        assert torch.allclose(masked_positions, torch.zeros_like(masked_positions)), "Attention weights are incorrectly masked"
 
     # Multiply attention weights with value
     output = torch.matmul(attn_weights, value)  # (batch_size, h, seq_len_q, d_v)
