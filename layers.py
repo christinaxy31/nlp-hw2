@@ -146,7 +146,7 @@ class PositionwiseFeedForward(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-    return self.w_2(self.dropout(self.w_1(x).relu()))
+        return self.w_2(self.dropout(self.w_1(x).relu()))
 
 
 class Embeddings(nn.Module):
