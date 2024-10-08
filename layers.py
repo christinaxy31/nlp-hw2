@@ -138,14 +138,12 @@ class MultiHeadedAttention(nn.Module):
         query, key, value = [linear(x).view(batch_size, -1, self.h, self.d_k).transpose(1
 
 
-class PositionwiseFeedForward(nn.Module):
-
+class PositionwiseFeedForward(nn.Module):                                               
     def __init__(self, d_model, d_ff, dropout=0.1):
         super(PositionwiseFeedForward, self).__init__()
         self.w_1 = nn.Linear(d_model, d_ff)
         self.w_2 = nn.Linear(d_ff, d_model)
         self.dropout = nn.Dropout(dropout)
-
 
     def forward(self, x):
     return self.w_2(self.dropout(self.w_1(x).relu()))
@@ -162,7 +160,6 @@ class Embeddings(nn.Module):
 
 
 class Generator(nn.Module):
-    
     def __init__(self, d_model, vocab):
         super(Generator, self).__init__()
         self.proj = nn.Linear(d_model, vocab)
@@ -172,8 +169,6 @@ class Generator(nn.Module):
 
 
 class LabelSmoothing(nn.Module):
-   
-
     def __init__(self, size, padding_idx, smoothing=0.0):
         super(LabelSmoothing, self).__init__()
         self.criterion = nn.KLDivLoss(reduction="sum")
