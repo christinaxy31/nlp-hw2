@@ -40,10 +40,9 @@ def test_multiheaded_attention():
     value = torch.rand(3, 10, d_v)
     mattn = MultiHeadedAttention(h, d_k, dropout=0)
     out = mattn(query, key, value)
-    
-    assert out.shape == value.shape, print("Incorrect shape of output")
     print("out_shape:", out.shape)
     print("value_shape:", value.shape)
+    assert out.shape == value.shape, print("Incorrect shape of output")
     print("=" * 10 + "   Multiheaded Attention Unit Test 1 Passed   " + "="*10)
     
     assert mattn.attn is not None, print("You should set self.attn values in the class")
