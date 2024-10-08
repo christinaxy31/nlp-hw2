@@ -135,7 +135,7 @@ class MultiHeadedAttention(nn.Module):
         assert self.d_model % self.h == 0, "d_model must be divisible by the number of heads (h)."
 
         # Linear projection and reshape to (batch_size, h, seq_len, d_k)
-        query, key, value = [linear(x).view(batch_size, -1, self.h, self.d_k).transpose(1
+        query, key, value = [linear(x).view(batch_size, -1, self.h, self.d_k).transpose(1, 2) for linear, x in zip(self.linears, (query, key, value))]
 
 
 class PositionwiseFeedForward(nn.Module):                                               
