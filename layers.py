@@ -119,7 +119,7 @@ def attention(query, key, value, mask=None, dropout=None):
         attention = attention * mask 
     #Optional: Dropout
     if dropout is not None:
-        attention = nn.Dropout(attention,dropout)
+        attention = nn.Dropout(dropout)
     #Z = enriched embedding 
     output = torch.matmul(attention,value)
     return output, attention
