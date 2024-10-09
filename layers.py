@@ -73,119 +73,62 @@ class DecoderLayer(nn.Module):
 
 
 
+    
+    
 def attention(query, key, value, mask=None, dropout=None):
-    # query and key have same D
-    # key and value have same L
-    # query: [B, L_q, D]
-    # key: [B, L_k, D]
-    # value: [B, L_k, D]
-    # scaled_score：[B, L_q, L_k]
-    # mask：[B, 1, L_k]
-    # attention：[B, L_q, L_k]
-    # output：[B, L_q, D]
-    # for multihead:
-    # query：[B, L_q, num_heads, head_dim] -> [B, num_heads, L_q, head_dim]
-    # key：[B, L_k, num_heads, head_dim] -> [B, num_heads, L_k, head_dim]
-    # value：[B, L_k, num_heads, head_dim] -> [B, num_heads, L_k, head_dim]
-    # scaled_score：[B, num_heads, L_q, L_k]
-    # mask：[B, 1, 1, L_k]（broadcast in num_heads and L_q）
-    # attention：[B, num_heads, L_q, L_k]
-    # output：comcatenate and linear transformation to [B, L_q, D]
-    
-
-    dk = key.shape[-1]
-    score = torch.matmul(query,key.transpose(-1,-2)) #BxLxD
-    scaled_score = score/math.sqrt(dk)
-    print(f"Scaled score shape: {scaled_score.shape}")
+    "Compute 'Scaled Dot Product Attention'"
+    d_k = query.size(-1)
+    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     if mask is not None:
-        print(f"Original Mask shape: {mask.shape}")
-
-        if len(mask.shape) != len(query.shape):
-            mask = mask.unsqueeze(1)  
-            print(f"Mask shape after unsqueeze: {mask.shape}")
-
-        scaled_score.masked_fill(mask == 0, -1e9)
-    
-    attention = torch.softmax(scaled_score,dim=-1)
-    if mask is not None:
-        attention = attention * mask 
-    #Optional: Dropout
+        mask = mask.unsqueeze(1)
+        scores = scores.masked_fill(mask == 0, -1e9)
+    p_attn = scores.softmax(dim=-1)
     if dropout is not None:
-        attention = nn.Dropout(dropout)(attention)
-    #Z = enriched embedding 
-    output = torch.matmul(attention,value)
-    return output, attention
+        p_attn = dropout(p_attn)
     
-
-    
-
+    attn_out = torch.matmul(p_attn, value)
+    attn_weights = p_attn
+    return attn_out, attn_weights
 
 
 class MultiHeadedAttention(nn.Module):
-    def __init__(self,nheads,dmodel,dropout=0.1):
-        super(MultiHeadedAttention,self).__init__()
-        assert dmodel % nheads ==0 
-        self.dk = dmodel//nheads
-        self.nheads =  nheads
-        
-        self.Wq = nn.Linear(dmodel,dmodel)
-        self.Wk = nn.Linear(dmodel,dmodel)
-        self.Wv = nn.Linear(dmodel,dmodel)
-        self.Wo = nn.Linear(dmodel,dmodel)
-        
-        self.dropout_value = dropout
-        self.dropout = nn.Dropout(p= dropout)
-        
+    def __init__(self, h, d_model, dropout=0.1):
+        "Take in model size and number of heads."
+        super(MultiHeadedAttention, self).__init__()
+        assert d_model % h == 0
+        # We assume d_v always equals d_k
+        self.d_k = d_model // h
+        self.h = h
+        self.linears = clones(nn.Linear(d_model, d_model), 4)
+        self.attn = None
+        self.dropout = nn.Dropout(p=dropout)
+
     def forward(self, query, key, value, mask=None):
-        if mask is not None and len(mask.shape) != len(query.shape):
-            # Same mask applied to all of the nheads
-            mask = mask.unsqueeze(1) 
-   
-        batch_size = query.size(0)  
-        seq_length = query.size(1)  
-        print("seq_length:", seq_length)
-       
-        print(f"Key shape before projection: {key.shape}")
-        print(f"Query shape before projection: {query.shape}")
-        print(f"Value shape before projection: {value.shape}")
-
-        # Project key, query, value using linear layers
-        key, query, value = self.Wk(key), self.Wq(query), self.Wv(value)  # k, q, v = (B, L, dmodel)
-        print("key's shape:", key.shape)
-        print("query's shape:", query.shape)
-        print("value's shape:", value.shape)
-
-        # Reshape to (B, L, nheads, dk), where dk = dmodel // nheads
-        key = key.view(batch_size, -1, self.nheads, self.dk)  
-        query = query.view(batch_size, -1, self.nheads, self.dk)  
-        value = value.view(batch_size, -1, self.nheads, self.dk)  
+        "Implements Figure 2 in the paper - https://arxiv.org/pdf/1706.03762.pdf"
         
-        # Transpose to (B, nheads, L, dk) to prepare for attention calculation
-        key = key.transpose(1, 2)    # (B, L, nheads, dk) --> (B, nheads, L, dk)
-        query = query.transpose(1, 2)  
-        value = value.transpose(1, 2)
-        
-       
- 
+        nbatches = query.size(0)
 
-        
-    
-        # Calculate self-attention
-        z, self.attn = attention(query, key, value, mask, self.dropout_value)  # z: (B, nheads, L, dk)
-        print("z's shape:", z.shape)
-    
-        # Reshape z from (B, nheads, L, dk) --> (B, L, nheads * dk)
-        z_concat = z.transpose(1, 2).contiguous()  # z_concat: (B, L, nheads, dk)
-        print("z_concat's shape before:", z_concat.shape)
-        z_concat = z_concat.view(batch_size, -1, self.nheads * self.dk)  # z_concat: (B, L, nheads * dk)
-        
-        # Project the concatenated output back to (B, L, dmodel)
-        print("z_concat's shape:", z_concat.shape)
-        z_enriched = self.Wo(z_concat)  # z_enriched: (B, L, dmodel)
-    
-        return z_enriched
+        # 1) Do all the linear projections in batch from d_model => h x d_k
+        query, key, value = [
+            lin(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
+            for lin, x in zip(self.linears, (query, key, value))
+        ]
 
- 
+        # 2) Apply attention on all the projected vectors in batch.
+        x, self.attn = attention(
+            query, key, value, mask=mask, dropout=self.dropout
+        )
+
+        # 3) "Concat" using a view and apply a final linear.
+        x = (
+            x.transpose(1, 2)
+            .contiguous()
+            .view(nbatches, -1, self.h * self.d_k)
+        )
+        
+        attn_out = self.linears[-1](x)
+        
+        return attn_out
     
     
     
