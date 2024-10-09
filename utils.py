@@ -93,50 +93,58 @@ def beam_search_decode(model, src, src_mask, max_len, start_symbol, beam_size, e
     """
     Implement beam search decoding with 'beam_size' width
     """
+    
+    # Encode the input sequence
+    memory = model.encode(src, src_mask)
+    # Initialize the decoder input with the start symbol
+    ys = torch.full((1, 1), start_symbol, dtype=src.dtype).cuda()
+    # Initialize the scores with 0
+    scores = torch.zeros(1).cuda()
 
-    #To-do: Encode source input using the model
-    # memory = ?
+    for step in range(max_len - 1):
+        # Decode the current sequence
+        out = model.decode(
+            memory, src_mask, ys, subsequent_mask(ys.size(1)).type_as(src.data)
+        )
+        # Get the probability distribution for the next token
+        prob = model.generator(out[:, -1])
+        vocab_size = prob.shape[-1]
 
-    # Initialize decoder input and scores
-    # ys = ?
-    scores = torch.Tensor([0.]).cuda()
+        # Prevent EOS tokens from being expanded further
+        prob[ys[:, -1] == end_idx, :] = 0
+        # Update scores with the log probabilities
+        scores = scores.unsqueeze(1) + prob
 
-    for i in range(max_len - 1):
-        # TODO: Decode using the model, memory, and source mask
-        out = None  # Replace with model.decode(...)
+        # Get top-k scores and their corresponding indices
+        scores, indices = torch.topk(scores.view(-1), beam_size)
+        # Compute beam indices and token indices from the top-k indices
+        beam_indices = torch.div(indices, vocab_size, rounding_mode='floor') # indices // vocab_size
+        token_indices = torch.remainder(indices, vocab_size)
 
-        # Calculate probabilities for the next token
-        prob = None  # Replace 
-
-        # Set probabilities of end token to 0 (except when already ended)
-
-        # Update scores
-
-        # Get top-k scores and indices
-
-        # TODO: Extract beam indices and token indices from top-k scores
-        beam_indices = None  # Replace with torch.divide(indices, vocab_size, rounding_mode='floor')
-        token_indices = None  # Replace with torch.remainder(indices, vocab_size)
-
-        # Prepare next decoder input
+        # Prepare the next input for the decoder
         next_decoder_input = []
-        for beam_index, token_index in zip(beam_indices, token_indices):
-            # TODO: Handle end token condition and append to next_decoder_input
-            pass
+        for beam_idx, token_idx in zip(beam_indices, token_indices):
+            prev_input = ys[beam_idx]
+            if prev_input[-1] == end_idx:
+                token_idx = end_idx  # Once EOS is reached, continue to use EOS
+            token_idx = torch.LongTensor([token_idx]).cuda()
+            next_decoder_input.append(torch.cat([prev_input, token_idx]))
+        ys = torch.vstack(next_decoder_input)
 
-        # Update ys
-        ys = None  
+        # Exit if all beams have reached EOS
+        if (ys[:, -1] == end_idx).sum() == beam_size:
+            break
 
-        # Check if all beams are finished, exit
-        
+        # Expand memory and src_mask for beam size after the first step
+        if step == 0:
+            memory = memory.expand(beam_size, *memory.shape[1:])
+            src_mask = src_mask.expand(beam_size, *src_mask.shape[1:])
 
-        # Expand encoder output for beam size (only once)
+    # Select the highest-scoring sequence
+    ys, _ = max(zip(ys, scores), key=lambda x: x[1])
+    ys = ys.unsqueeze(0)
 
-    # Return the top-scored sequence
-    # convert the top scored sequence to a list of text tokens
-
-    return None
-        
+    return ys
 
 
 def collate_batch(
