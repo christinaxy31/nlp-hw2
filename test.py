@@ -106,6 +106,8 @@ def test_beam_search():
     match = True
     for k in range(5):
         if results_greedy[k][-1] != results_beam[k][-1]:
+            print(results_greedy[k])
+            print(results_beam[k])
             match = False
             break
     
