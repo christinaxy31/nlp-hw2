@@ -155,6 +155,14 @@ class MultiHeadedAttention(nn.Module):
         key = torch.nn.functional.pad(key, (0, max_seq_length - key.size(1)))
         value = torch.nn.functional.pad(value, (0, max_seq_length - value.size(1)))
 
+        
+        if query.size(-1) == 513:
+            query = query[:, :, :512]
+        if key.size(-1) == 513:
+            key = key[:, :, :512]
+        if value.size(-1) == 513:
+            value = value[:, :, :512]
+
 
         batch_size = query.size(0)  
         seq_length = query.size(1)  
