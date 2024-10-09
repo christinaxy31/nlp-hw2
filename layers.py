@@ -160,7 +160,10 @@ class MultiHeadedAttention(nn.Module):
         seq_length = query.size(1)  
         print("seq_length:", seq_length)
        
-    
+        print(f"Key shape before projection: {key.shape}")
+        print(f"Query shape before projection: {query.shape}")
+        print(f"Value shape before projection: {value.shape}")
+
         # Project key, query, value using linear layers
         key, query, value = self.Wk(key), self.Wq(query), self.Wv(value)  # k, q, v = (B, L, dmodel)
         
