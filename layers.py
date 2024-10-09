@@ -163,9 +163,7 @@ class MultiHeadedAttention(nn.Module):
         if mask is not None and len(mask.shape) != len(query.shape):
             # Same mask applied to all of the nheads
             mask = mask.unsqueeze(1) 
-        
-
-
+   
         batch_size = query.size(0)  
         seq_length = query.size(1)  
         print("seq_length:", seq_length)
@@ -175,9 +173,9 @@ class MultiHeadedAttention(nn.Module):
         print(f"Value shape before projection: {value.shape}")
 
         # Reshape to (B, L, nheads, dk), where dk = dmodel // nheads
-        key = key.view(batch_size, seq_length, self.nheads, self.dk)  
-        query = query.view(batch_size, seq_length, self.nheads, self.dk)  
-        value = value.view(batch_size, seq_length, self.nheads, self.dk)  
+        key = key.view(batch_size, -1, self.nheads, self.dk)  
+        query = query.view(batch_size, -1, self.nheads, self.dk)  
+        value = value.view(batch_size, -1, self.nheads, self.dk)  
         
         # Transpose to (B, nheads, L, dk) to prepare for attention calculation
         key = key.transpose(1, 2)    # (B, L, nheads, dk) --> (B, nheads, L, dk)
@@ -186,8 +184,7 @@ class MultiHeadedAttention(nn.Module):
         
         # Project key, query, value using linear layers
         key, query, value = self.Wk(key), self.Wq(query), self.Wv(value)  # k, q, v = (B, L, dmodel)
-        
-        
+ 
 
         print("key's shape:", key.shape)
         print("query's shape:", query.shape)
@@ -198,7 +195,6 @@ class MultiHeadedAttention(nn.Module):
         print("z's shape:", z.shape)
     
         # Reshape z from (B, nheads, L, dk) --> (B, L, nheads * dk)
-        
         z_concat = z.transpose(1, 2).contiguous()  # z_concat: (B, L, nheads, dk)
         print("z_concat's shape before:", z_concat.shape)
         z_concat = z_concat.view(batch_size, -1, self.h * self.d_k)  # z_concat: (B, L, nheads * dk)
