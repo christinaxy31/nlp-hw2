@@ -74,19 +74,38 @@ class PositionalEncoding(nn.Module):
 
 
 def greedy_decode(model, src, src_mask, max_len, start_symbol):
+    # Step 1: 编码阶段，查看 memory
     memory = model.encode(src, src_mask)
+    print(f"Memory shape: {memory.shape}")
+    
+    # 初始化 ys 为起始符号
     ys = torch.zeros(1, 1).fill_(start_symbol).type_as(src.data)
+    print(f"Initial ys: {ys}")
+    
     for i in range(max_len - 1):
+        # Step 2: 每一步解码，查看 out 输出
         out = model.decode(
             memory, src_mask, ys, subsequent_mask(ys.size(1)).type_as(src.data)
         )
+        print(f"Decoder output at step {i}: {out.shape}")
+        
+        # Step 3: 生成概率分布，检查 prob 和 next_word
         prob = model.generator(out[:, -1])
+        print(f"Probability distribution at step {i}: {prob}")
+        
         _, next_word = torch.max(prob, dim=1)
         next_word = next_word.data[0]
+        print(f"Next word at step {i}: {next_word}")
+
+        # Step 4: 扩展生成序列 ys
         ys = torch.cat(
             [ys, torch.zeros(1, 1).type_as(src.data).fill_(next_word)], dim=1
         )
+        print(f"Generated sequence ys at step {i}: {ys}")
+    
+    # 返回生成的完整序列
     return ys
+
 
 
 def beam_search_decode(model, src, src_mask, max_len, start_symbol, beam_size, end_idx):
