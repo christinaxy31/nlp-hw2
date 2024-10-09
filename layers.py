@@ -33,20 +33,9 @@ class SublayerConnection(nn.Module):
 
     def forward(self, x, sublayer):
         "Apply residual connection to any sublayer with the same size."
-        print(f"x shape: {x.shape}")
-        sublayer_output = sublayer(self.norm(x))
-        print(f"sublayer_output shape: {sublayer_output.shape}")
-
+        return x + self.dropout(sublayer(self.norm(x)))
     
-        if x.size(1) != sublayer_output.size(1):
-            if x.size(1) < sublayer_output.size(1):
-            # 如果 x 的序列长度小于 sublayer_output，截断 sublayer_output
-                sublayer_output = sublayer_output[:, :x.size(1), :]  # 截断 sublayer_output 到与 x 一致的长度
-            else:
-            # 如果 x 的序列长度大于 sublayer_output，截断 x
-                x = x[:, :sublayer_output.size(1), :]  # 截断 x 到与 sublayer_output 一致的长度
 
-        return x + self.dropout(sublayer_output)
         
 
 
