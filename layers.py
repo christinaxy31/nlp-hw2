@@ -179,29 +179,7 @@ class MultiHeadedAttention(nn.Module):
         if mask is not None and len(mask.shape) != len(query.shape):
             # Same mask applied to all of the nheads
             mask = mask.unsqueeze(1) 
-        max_seq_length = 72
-
-
         
-        if query.size(1) != max_seq_length:
-            query = torch.nn.functional.pad(query, (0, 0, 0, max_seq_length - query.size(1)))
-        if key.size(1) != max_seq_length:
-            key = torch.nn.functional.pad(key, (0, 0, 0, max_seq_length - key.size(1)))
-        if value.size(1) != max_seq_length:
-            value = torch.nn.functional.pad(value, (0, 0, 0, max_seq_length - value.size(1)))
-
-        
-        query = torch.nn.functional.pad(query, (0, max_seq_length - query.size(1)))
-        key = torch.nn.functional.pad(key, (0, max_seq_length - key.size(1)))
-        value = torch.nn.functional.pad(value, (0, max_seq_length - value.size(1)))
-
-        
-        if query.size(-1) == 513:
-            query = query[:, :, :512]
-        if key.size(-1) == 513:
-            key = key[:, :, :512]
-        if value.size(-1) == 513:
-            value = value[:, :, :512]
 
 
         batch_size = query.size(0)  
@@ -212,9 +190,6 @@ class MultiHeadedAttention(nn.Module):
         print(f"Query shape before projection: {query.shape}")
         print(f"Value shape before projection: {value.shape}")
 
-        # Project key, query, value using linear layers
-        key, query, value = self.Wk(key), self.Wq(query), self.Wv(value)  # k, q, v = (B, L, dmodel)
-        
         # Reshape to (B, L, nheads, dk), where dk = dmodel // nheads
         key = key.view(batch_size, seq_length, self.nheads, self.dk)  
         query = query.view(batch_size, seq_length, self.nheads, self.dk)  
@@ -224,6 +199,11 @@ class MultiHeadedAttention(nn.Module):
         key = key.transpose(1, 2)    # (B, L, nheads, dk) --> (B, nheads, L, dk)
         query = query.transpose(1, 2)  
         value = value.transpose(1, 2)
+        
+        # Project key, query, value using linear layers
+        key, query, value = self.Wk(key), self.Wq(query), self.Wv(value)  # k, q, v = (B, L, dmodel)
+        
+        
 
         print("key's shape:", key.shape)
         print("query's shape:", query.shape)
@@ -237,7 +217,7 @@ class MultiHeadedAttention(nn.Module):
         
         z_concat = z.transpose(1, 2).contiguous()  # z_concat: (B, L, nheads, dk)
         print("z_concat's shape before:", z_concat.shape)
-        z_concat = z_concat.view(batch_size, seq_length, -1)  # z_concat: (B, L, nheads * dk)
+        z_concat = z_concat.view(batch_size, -1, self.h * self.d_k)  # z_concat: (B, L, nheads * dk)
         
         # Project the concatenated output back to (B, L, dmodel)
         print("z_concat's shape:", z_concat.shape)
