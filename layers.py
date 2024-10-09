@@ -172,6 +172,12 @@ class MultiHeadedAttention(nn.Module):
         print(f"Query shape before projection: {query.shape}")
         print(f"Value shape before projection: {value.shape}")
 
+        # Project key, query, value using linear layers
+        key, query, value = self.Wk(key), self.Wq(query), self.Wv(value)  # k, q, v = (B, L, dmodel)
+        print("key's shape:", key.shape)
+        print("query's shape:", query.shape)
+        print("value's shape:", value.shape)
+
         # Reshape to (B, L, nheads, dk), where dk = dmodel // nheads
         key = key.view(batch_size, -1, self.nheads, self.dk)  
         query = query.view(batch_size, -1, self.nheads, self.dk)  
@@ -182,13 +188,10 @@ class MultiHeadedAttention(nn.Module):
         query = query.transpose(1, 2)  
         value = value.transpose(1, 2)
         
-        # Project key, query, value using linear layers
-        key, query, value = self.Wk(key), self.Wq(query), self.Wv(value)  # k, q, v = (B, L, dmodel)
+       
  
 
-        print("key's shape:", key.shape)
-        print("query's shape:", query.shape)
-        print("value's shape:", value.shape)
+        
     
         # Calculate self-attention
         z, self.attn = attention(query, key, value, mask, self.dropout_value)  # z: (B, nheads, L, dk)
