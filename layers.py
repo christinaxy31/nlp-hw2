@@ -167,9 +167,12 @@ class MultiHeadedAttention(nn.Module):
     
         # Calculate self-attention
         z, self.attn = attention(query, key, value, mask, self.dropout_value)  # z: (B, nheads, L, dk)
+        print("z's shape:", z.shape)
     
         # Reshape z from (B, nheads, L, dk) --> (B, L, nheads * dk)
+        
         z_concat = z.transpose(1, 2).contiguous()  # z_concat: (B, L, nheads, dk)
+        print("z_concat's shape before:", z_concat.shape)
         z_concat = z_concat.view(batch_size, seq_length, -1)  # z_concat: (B, L, nheads * dk)
         
         # Project the concatenated output back to (B, L, dmodel)
