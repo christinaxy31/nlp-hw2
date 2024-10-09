@@ -148,7 +148,7 @@ class MultiHeadedAttention(nn.Module):
         if mask is not None and len(mask.shape) != len(query.shape):
             # Same mask applied to all of the nheads
             mask = mask.unsqueeze(1) 
-        max_seq_length = max(query.size(1), key.size(1), value.size(1))
+        max_seq_length = 72
 
     
         query = torch.nn.functional.pad(query, (0, max_seq_length - query.size(1)))
