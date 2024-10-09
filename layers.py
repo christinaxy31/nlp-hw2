@@ -151,6 +151,8 @@ class MultiHeadedAttention(nn.Module):
 
         batch_size = query.size(0)  
         seq_length = query.size(1)  
+        print("seq_length:", seq_length)
+       
     
         # Project key, query, value using linear layers
         key, query, value = self.Wk(key), self.Wq(query), self.Wv(value)  # k, q, v = (B, L, dmodel)
