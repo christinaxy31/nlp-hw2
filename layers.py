@@ -120,17 +120,9 @@ def attention(query, key, value, mask=None, dropout=None):
     score = torch.matmul(query,key.transpose(-1,-2)) #BxLxD
     scaled_score = score/math.sqrt(dk)
     print(f"Scaled score shape: {scaled_score.shape}")
-    #Masking (optional) 
-    #Increase score to very large negative number for tokens that are masked.
-    #Such large negative number will have 0 exponentiation and hence their softmax will be 0 as well. 
-    
-
     if mask is not None:
         print(f"Original Mask shape: {mask.shape}")
-        
-       
-       
-    
+
         if len(mask.shape) != len(query.shape):
             mask = mask.unsqueeze(1)  
             print(f"Mask shape after unsqueeze: {mask.shape}")
