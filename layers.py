@@ -200,7 +200,7 @@ class MultiHeadedAttention(nn.Module):
         # Reshape z from (B, nheads, L, dk) --> (B, L, nheads * dk)
         z_concat = z.transpose(1, 2).contiguous()  # z_concat: (B, L, nheads, dk)
         print("z_concat's shape before:", z_concat.shape)
-        z_concat = z_concat.view(batch_size, -1, self.h * self.d_k)  # z_concat: (B, L, nheads * dk)
+        z_concat = z_concat.view(batch_size, -1, self.nheads * self.d_k)  # z_concat: (B, L, nheads * dk)
         
         # Project the concatenated output back to (B, L, dmodel)
         print("z_concat's shape:", z_concat.shape)
