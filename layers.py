@@ -164,6 +164,10 @@ class MultiHeadedAttention(nn.Module):
         key = key.transpose(1, 2)    # (B, L, nheads, dk) --> (B, nheads, L, dk)
         query = query.transpose(1, 2)  
         value = value.transpose(1, 2)
+
+        print("key's shape:", key.shape)
+        print("query's shape:", query.shape)
+        print("value's shape:", value.shape)
     
         # Calculate self-attention
         z, self.attn = attention(query, key, value, mask, self.dropout_value)  # z: (B, nheads, L, dk)
