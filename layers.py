@@ -150,7 +150,16 @@ class MultiHeadedAttention(nn.Module):
             mask = mask.unsqueeze(1) 
         max_seq_length = 72
 
-    
+
+        
+        if query.size(1) != max_seq_length:
+            query = torch.nn.functional.pad(query, (0, 0, 0, max_seq_length - query.size(1)))
+        if key.size(1) != max_seq_length:
+            key = torch.nn.functional.pad(key, (0, 0, 0, max_seq_length - key.size(1)))
+        if value.size(1) != max_seq_length:
+            value = torch.nn.functional.pad(value, (0, 0, 0, max_seq_length - value.size(1)))
+
+        
         query = torch.nn.functional.pad(query, (0, max_seq_length - query.size(1)))
         key = torch.nn.functional.pad(key, (0, max_seq_length - key.size(1)))
         value = torch.nn.functional.pad(value, (0, max_seq_length - value.size(1)))
