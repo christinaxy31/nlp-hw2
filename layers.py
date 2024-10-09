@@ -40,10 +40,12 @@ class SublayerConnection(nn.Module):
     
         if x.size(1) != sublayer_output.size(1):
             if x.size(1) < sublayer_output.size(1):
-                sublayer_output = sublayer_output[:, :x.size(1), :]  # 截断 sublayer 输出
+            # 如果 x 的序列长度小于 sublayer_output，截断 sublayer_output
+                sublayer_output = sublayer_output[:, :x.size(1), :]  # 截断 sublayer_output 到与 x 一致的长度
             else:
-                x = torch.nn.functional.pad(x, (0, 0, 0, x.size(1) - sublayer_output.size(1)))  # 填充 x
-    
+            # 如果 x 的序列长度大于 sublayer_output，截断 x
+                x = x[:, :sublayer_output.size(1), :]  # 截断 x 到与 sublayer_output 一致的长度
+
         return x + self.dropout(sublayer_output)
         
 
