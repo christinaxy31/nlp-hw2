@@ -111,6 +111,7 @@ def attention(query, key, value, mask=None, dropout=None):
     #Such large negative number will have 0 exponentiation and hence their softmax will be 0 as well. 
     if mask is not None:
         print(f"Mask shape: {mask.shape}")
+    if mask.dim() != len(query.shape):
         mask = mask.unsqueeze(1)  # mask is extended to [batch_size, 1, key_len]
         print(f"Mask shape after unsqueeze: {mask.shape}")
         scaled_score.masked_fill(mask==0,-1e9)
