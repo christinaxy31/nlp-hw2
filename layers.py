@@ -129,15 +129,7 @@ def attention(query, key, value, mask=None, dropout=None):
         print(f"Original Mask shape: {mask.shape}")
         
        
-        if mask.size(-1) < 72 or mask.size(-2) < 72:
-            padding_len = 72 - mask.size(-1)  #  L_k 
-            padding_wid = 72 - mask.size(-2)  #  L_q 
-            
-           
-            mask = torch.nn.functional.pad(mask, (0, padding_len, 0, padding_wid), value=0)
-    
-        print(f"Mask shape after padding: {mask.shape}")
-    
+       
     
         if len(mask.shape) != len(query.shape):
             mask = mask.unsqueeze(1)  
