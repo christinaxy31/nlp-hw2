@@ -265,16 +265,6 @@ def create_dataloaders(
         return tokenize(text, spacy_en)
 
     def collate_fn(batch):
-        lengths = [len(item[0]) for item in batch]
-
-        max_length = max(lengths)
-
-    
-        filtered_batch = [item for item in batch if len(item[0]) == max_length]
-
-        
-        if len(filtered_batch) == 0:
-            return None
         return collate_batch(
             batch,
             tokenize_de,
