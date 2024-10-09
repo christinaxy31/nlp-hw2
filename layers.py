@@ -109,9 +109,8 @@ def attention(query, key, value, mask=None, dropout=None):
     #Masking (optional) 
     #Increase score to very large negative number for tokens that are masked.
     #Such large negative number will have 0 exponentiation and hence their softmax will be 0 as well. 
-    if mask is not None:
+    if mask is not None and len(mask.shape) != len(query.shape):
         print(f"Mask shape: {mask.shape}")
-    if len(mask.shape) != len(query.shape):
         mask = mask.unsqueeze(1)  # mask is extended to [batch_size, 1, key_len]
         print(f"Mask shape after unsqueeze: {mask.shape}")
         scaled_score.masked_fill(mask==0,-1e9)
@@ -146,7 +145,7 @@ class MultiHeadedAttention(nn.Module):
         self.dropout = nn.Dropout(p= dropout)
         
     def forward(self, query, key, value, mask=None):
-        if mask is not None:
+        if mask is not None and len(mask.shape) != len(query.shape):
             # Same mask applied to all of the nheads
             mask = mask.unsqueeze(1) 
 
