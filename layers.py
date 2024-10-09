@@ -111,16 +111,26 @@ def attention(query, key, value, mask=None, dropout=None):
     #Such large negative number will have 0 exponentiation and hence their softmax will be 0 as well. 
     
 
+    if mask is not None:
+    print(f"Original Mask shape: {mask.shape}")
     
-    if mask is not None and len(mask.shape) != len(query.shape):
-        print(f"Mask shape: {mask.shape}")
-        mask = mask.unsqueeze(1)  # mask is extended to [batch_size, 1, key_len]
+   
+    if mask.size(-1) < 72 or mask.size(-2) < 72:
+        padding_len = 72 - mask.size(-1)  #  L_k 
+        padding_wid = 72 - mask.size(-2)  #  L_q 
+        
+       
+        mask = torch.nn.functional.pad(mask, (0, padding_len, 0, padding_wid), value=0)
+
+    print(f"Mask shape after padding: {mask.shape}")
+
+
+    if len(mask.shape) != len(query.shape):
+        mask = mask.unsqueeze(1)  
         print(f"Mask shape after unsqueeze: {mask.shape}")
-        scaled_score.masked_fill(mask==0,-1e9)
-    if mask is not None and mask.size(-1) < 72:
-        padding = 72 - mask.size(-1)
-        mask = torch.nn.functional.pad(mask, (0, padding), value=0) 
-        print(f"Mask shape after padding: {mask.shape}")
+
+    scaled_score.masked_fill(mask == 0, -1e9)
+    
     attention = torch.softmax(scaled_score,dim=-1)
     if mask is not None:
         attention = attention * mask 
