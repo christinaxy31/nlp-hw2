@@ -173,7 +173,7 @@ class MultiHeadedAttention(nn.Module):
         z_concat = z_concat.view(batch_size, seq_length, -1)  # z_concat: (B, L, nheads * dk)
         
         # Project the concatenated output back to (B, L, dmodel)
-        print("z_concat's shape:", z_concat.shape())
+        print("z_concat's shape:", z_concat.shape)
         z_enriched = self.Wo(z_concat)  # z_enriched: (B, L, dmodel)
     
         return z_enriched
