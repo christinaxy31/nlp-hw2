@@ -33,7 +33,19 @@ class SublayerConnection(nn.Module):
 
     def forward(self, x, sublayer):
         "Apply residual connection to any sublayer with the same size."
-        return x + self.dropout(sublayer(self.norm(x)))
+        print(f"x shape: {x.shape}")
+        sublayer_output = sublayer(self.norm(x))
+        print(f"sublayer_output shape: {sublayer_output.shape}")
+
+    
+        if x.size(1) != sublayer_output.size(1):
+            if x.size(1) < sublayer_output.size(1):
+                sublayer_output = sublayer_output[:, :x.size(1), :]  # 截断 sublayer 输出
+            else:
+                x = torch.nn.functional.pad(x, (0, 0, 0, x.size(1) - sublayer_output.size(1)))  # 填充 x
+    
+        return x + self.dropout(sublayer_output)
+        
 
 
 class EncoderLayer(nn.Module):
